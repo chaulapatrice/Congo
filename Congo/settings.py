@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "django.contrib.gis",
     'users',
-    'shop'
+    'shop',
+    'django_bootstrap5'
 ]
 
 MIDDLEWARE = [
@@ -122,3 +123,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD  = 'django.db.models.BigAutoField'
+
+# Authentication
+# https://docs.djangoproject.com/en/6.0/ref/settings/#auth
+
+LOGIN_URL = "users:login"
+LOGIN_REDIRECT_URL = "shop:landing"
+LOGOUT_REDIRECT_URL = "shop:landing"
