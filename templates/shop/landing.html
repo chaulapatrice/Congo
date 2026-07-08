@@ -57,35 +57,6 @@
             </div>
         </div>
     </section>
-
-    <!-- Categories -->
-    {% if categories %}
-        <section id="categories" class="py-5 bg-light">
-            <div class="container">
-                <div class="d-flex justify-content-between align-items-end mb-4">
-                    <div>
-                        <h2 class="fw-bold mb-1">Shop by category</h2>
-                        <p class="text-muted mb-0">Find exactly what you're looking for.</p>
-                    </div>
-                </div>
-                <div class="row g-3">
-                    {% for category in categories %}
-                        <div class="col-6 col-md-4 col-lg-3">
-                            <a href="#" class="text-decoration-none">
-                                <div class="card border-0 shadow-sm h-100 text-center py-4 product-card">
-                                    <div class="card-body">
-                                        <i class="bi bi-tag-fill text-primary fs-2 mb-2 d-block"></i>
-                                        <span class="fw-semibold text-dark">{{ category.name }}</span>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
-    {% endif %}
-
     <!-- Products -->
     <section id="products" class="py-5">
         <div class="container">
