@@ -6,15 +6,16 @@ from django.views.generic import DetailView, ListView
 
 from .forms import RatingForm
 from .models import Category, Product, Rating
-from kafka import KafkaProducer, JsonSerializer
+from kafka import KafkaProducer
 from django.conf import settings
+import json
 
 producer = None
 
 try:
     producer = KafkaProducer(
         bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
-        value_serializer=JsonSerializer(),
+        value_serializer= lambda v: json.dumps(v).encode('utf-8'),
         security_protocol="SSL"
     )
 except Exception as e:
