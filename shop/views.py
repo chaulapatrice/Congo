@@ -6,6 +6,19 @@ from django.views.generic import DetailView, ListView
 
 from .forms import RatingForm
 from .models import Category, Product, Rating
+from kafka import KafkaProducer, JsonSerializer
+from django.conf import settings
+
+producer = None
+
+try:
+    producer = KafkaProducer(
+        bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
+        value_serializer=JsonSerializer(),
+        security_protocol="SSL"
+    )
+except Exception as e:
+    print(f"Error creating Kafka producer: {e}")
 
 
 class ProductListView(ListView):
@@ -22,6 +35,21 @@ class ProductDetailView(DetailView):
     model = Product
     template_name = "shop/product_detail.html"
     context_object_name = "product"
+
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if producer is not None and request.user.is_authenticated:
+            try:
+                future = producer.send(settings.KAFKA_TOPIC, {
+                    "productId": self.object.id,
+                    "userId": request.user.id
+                })
+                future.get(timeout=10)
+                print("Message sent successfully")
+            except Exception as e:
+                print(f"Error sending message to Kafka: {e}")
+        return response
 
     def get_queryset(self):
         return Product.objects.prefetch_related("categories", "ratings__user")

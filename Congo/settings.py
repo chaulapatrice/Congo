@@ -130,3 +130,5 @@ DEFAULT_AUTO_FIELD  = 'django.db.models.BigAutoField'
 LOGIN_URL = "users:login"
 LOGIN_REDIRECT_URL = "shop:landing"
 LOGOUT_REDIRECT_URL = "shop:landing"
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS")
+KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC")
