@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-a*2ydfij26wj3hcm#&2%sgc9po-)y!wf!fvkt2cpkr444auq_z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "django.contrib.gis",
     'users',
-    'shop'
+    'shop',
+    'django_bootstrap5'
 ]
 
 MIDDLEWARE = [
@@ -122,3 +123,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD  = 'django.db.models.BigAutoField'
+
+# Authentication
+# https://docs.djangoproject.com/en/6.0/ref/settings/#auth
+
+LOGIN_URL = "users:login"
+LOGIN_REDIRECT_URL = "shop:landing"
+LOGOUT_REDIRECT_URL = "shop:landing"
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS")
+KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC")
