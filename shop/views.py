@@ -6,20 +6,15 @@ from django.views.generic import DetailView, ListView
 
 from .forms import RatingForm
 from .models import Category, Product, Rating
-from kafka import KafkaProducer
-from django.conf import settings
 import json
-
-producer = None
-
-try:
-    producer = KafkaProducer(
-        bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
-        value_serializer= lambda v: json.dumps(v).encode('utf-8'),
-        security_protocol="SSL"
-    )
-except Exception as e:
-    print(f"Error creating Kafka producer: {e}")
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.conf import settings
+import csv
+from django.db import transaction
+from users.models import User
+from .models import Product
 
 
 class ProductListView(ListView):
@@ -37,19 +32,8 @@ class ProductDetailView(DetailView):
     template_name = "shop/product_detail.html"
     context_object_name = "product"
 
-
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
-        if producer is not None and request.user.is_authenticated:
-            try:
-                future = producer.send(settings.KAFKA_TOPIC, {
-                    "productId": self.object.id,
-                    "userId": request.user.id
-                })
-                future.get(timeout=10)
-                print("Message sent successfully")
-            except Exception as e:
-                print(f"Error sending message to Kafka: {e}")
         return response
 
     def get_queryset(self):
@@ -101,7 +85,11 @@ def add_review(request, pk):
 
 def landing(request):
     """Public landing page showcasing featured products and categories."""
-    products = Product.objects.prefetch_related("categories").all()[:8]
+    products = Product.objects.none()
+
+    if request.user.is_authenticated:
+        products = request.user.recommendations.all()
+
     categories = Category.objects.all()[:8]
     return render(
         request,
@@ -111,3 +99,61 @@ def landing(request):
             "categories": categories,
         },
     )
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def recommendations_webhook(request):
+    data = json.loads(request.body)
+
+    import boto3
+    import os
+
+    s3 = boto3.client("s3")
+
+    print(json.dumps(data, indent=4))
+
+    records = data.get("Records")
+
+    if not records:
+        return JsonResponse({"error": "No records provided"}, status=400)
+
+    object_data = records[0].get("s3", {}).get("object")
+
+    if not object_data:
+        return JsonResponse({"error": "No object data provided"}, status=400)
+
+    key = object_data.get("key")
+
+    filename = key.split("/")[-1]
+
+    file_path = f"/tmp/{filename}"
+
+    bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+
+    s3.download_file(bucket_name, key, file_path)
+
+    # Group by user id to improve insertion into the database
+    group_by_user_id = dict()
+
+    with open(file_path, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row.get("userId") not in group_by_user_id:
+                group_by_user_id[row.get("userId")] = [
+                    row.get("productId")
+                ]
+            else:
+                group_by_user_id[row.get("userId")].append(
+                    row.get("productId")
+                )
+
+    with transaction.atomic():
+        for user_id, product_ids in group_by_user_id.items():
+            products = Product.objects.filter(id__in=product_ids)
+            user = User.objects.get(id=user_id)
+            user.recommendations.set(products)
+
+    print("Successfully loaded recommendations")
+
+    return JsonResponse({"message": "Success"}, status=200)
